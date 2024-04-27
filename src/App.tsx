@@ -8,20 +8,24 @@ import './App.css';
  */
 interface IState {
   data: ServerRespond[],
+  isStreaming: boolean,
+  showGraph: boolean,
 }
 
 /**
  * The parent element of the react app.
  * It renders title, button and Graph react element.
  */
-class App extends Component<{}, IState> {
+class App extends Component
+{
   constructor(props: {}) {
     super(props);
 
     this.state = {
-      // data saves the server responds.
-      // We use this state to parse data down to the child element (Graph) as element property
       data: [],
+      isStreaming: false,
+      // Set showGraph to false initially
+      showGraph: false,
     };
   }
 
@@ -29,18 +33,33 @@ class App extends Component<{}, IState> {
    * Render Graph react component with state.data parse as property data
    */
   renderGraph() {
-    return (<Graph data={this.state.data}/>)
+    // Render the graph only if showGraph is true
+    if (this.state.showGraph) {
+      return (<Graph data={this.state.data}/>);
+    } else {
+      return null; // If showGraph is false, return null (don't render the graph)
+    }
   }
 
   /**
    * Get new data from server and update the state with the new data
    */
   getDataFromServer() {
-    DataStreamer.getData((serverResponds: ServerRespond[]) => {
-      // Update the state by creating a new array of data that consists of
-      // Previous data in the state and the new data from server
-      this.setState({ data: [...this.state.data, ...serverResponds] });
-    });
+    // Start streaming
+    this.setState({ isStreaming: true });
+
+    // Use setInterval to continuously fetch data from the server
+    const interval = setInterval(() => {
+      DataStreamer.getData((serverResponds: ServerRespond[]) => {
+        // Update the state with new data
+        this.setState((prevState) => ({ data: [...prevState.data, ...serverResponds] }));
+      });
+
+      // If streaming is stopped, clear the interval
+      if (!this.state.isStreaming) {
+        clearInterval(interval);
+      }
+    }, 100);
   }
 
   /**
@@ -70,5 +89,3 @@ class App extends Component<{}, IState> {
     )
   }
 }
-
-export default App;
